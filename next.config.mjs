@@ -1,5 +1,5 @@
 const nextConfig = {
-  // ✅ Remove 'output'
+  
   basePath: '/N8N_X_UI',
   assetPrefix: '/N8N_X_UI/',
   eslint: { ignoreDuringBuilds: true },
