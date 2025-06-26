@@ -47,7 +47,7 @@ class APIService {
   static async updateUserProfile(profile: Partial<ProfileAPIResponse>) {
     const res = await fetch(`${BASE_URL}profile`, {
       // const res = await fetch(`${testURL}profile`, {
-      method: "{PUT}",
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(profile),
     })
