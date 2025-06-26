@@ -24,6 +24,11 @@ const menuItems = [
     icon: User,
   },
   {
+    title: "Daily Input Tweet",
+    url: "/dailyWorkingTweets",
+    icon: MessageSquare,
+  },
+  {
     title: "Tweets Management",
     url: "/tweets",
     icon: MessageSquare,

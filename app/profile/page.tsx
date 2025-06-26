@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Edit, Save, X } from "lucide-react"
+import { Edit, HelpCircle, Save, X } from "lucide-react"
 import APIService, { encodeToBase64, ProfileAPIResponse } from "../APIService/APIService"
 import {
   Dialog,
@@ -20,12 +20,36 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 
+const helpSteps = [
+  { title: "Enter Twitter UserName", description: "Fill in your Twitter UserName" },
+  { title: "Set Up X Portal", description: "Go to https://developer.x.com/en , login, Click on Developer Portal" },
+  { title: "Create APP/Project", description: "Then go to authentication settings" },
+  { title: "User authentication settings", description: "Make sure those setting below is set correctly" },
+  { title: "App permissions", description: "Read and write and Direct message" },
+  { title: "Type of App", description: "Web App, Automated App or Bot" },
+  { title: "App info", description: "Callback URI / Redirect URL : https://oauth.n8n.cloud/oauth2/callback || Website URL to whatever" },
+  { title: "Save User authentication settings", description: "Save it" },
+  { title: "Keys and tokens Setting", description: "After save authen setting, go back, change to Keys and tokens tab" },
+  { title: "Copy Client ID and Client Secret", description: "Save it somewhere, then come back to editing" },
+  { title: "Fill in Client ID and Client Secret", description: "Fill in what you just save" },
+  { title: "Fill in X Authorize", description: "Click Generate X Authorize to generate token from Client ID and Client Secret" },
+  { title: "Open OAuth Window", description: "You should be getting a new window asking for X login and authorize, if not, Client ID, Client Secret or X Authorize is wrong" },
+  { title: "Get the code", description: "getting Something went wrong. Please try again! , don't worry, copy the code in the url" },
+  { title: "Paste the code", description: "ex url: https://oauth.n8n.cloud/oauth2/callback?state=xyz&code=*************** , copy the *** part and paste it in the field" },
+  { title: "Get Refresh Token", description: "Click to retrieve and store your long-lived token (~6 months)." },
+  { title: "Get yourself a https://twitterapi.io/ account", description: "https://twitterapi.io/ , make a account, get the API key from dashboard screen" },
+  { title: "Get TwitterAPI cursor Key", description: "Click on Get TwitterAPI cursor Key to get the key" },
+  { title: "Edit prompt", description: "{{ $json.text }} must exist to give the Agent context of the tweet you are feeding to generate comment" },
+  { title: "Save changes", description: "Click Save to store your profile settings." }
+]
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileAPIResponse | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
     APIService.fetchUserProfile()
@@ -60,6 +84,15 @@ export default function ProfilePage() {
         return
       }
     }
+    if (
+      formData.quoteNumber === undefined ||
+      isNaN(Number(formData.quoteNumber)) ||
+      Number(formData.quoteNumber) < 0
+    ) {
+      alert("Quote Number must be a number greater than or equal to 0")
+      return
+    }
+
     setShowConfirm(true)
   }
 
@@ -100,7 +133,12 @@ export default function ProfilePage() {
     <div className="flex-1 space-y-6 p-8 pt-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
+          <div style={{ display: "flex" }}>
+            <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
+            <Button variant="ghost" size="icon" onClick={() => setShowHelp(true)}>
+              <HelpCircle className="w-4 h-4 text-muted-foreground" />
+            </Button>
+          </div>
           <p className="text-muted-foreground text-sm">Manage your account settings and API credentials</p>
         </div>
         <div className="flex gap-2">
@@ -131,6 +169,19 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <EditableField label="Twitter User Name" value={formData.userName || ""} editable={editMode} onChange={(val) => handleChange("userName", val)} />
+          <EditableField
+            label="Quote Number"
+            value={formData.quoteNumber ?? ""}
+            editable={editMode}
+            onChange={(val) => {
+              const parsed = parseInt(val, 10)
+              if (!isNaN(parsed) && parsed >= 0) {
+                handleChange("quoteNumber", String(parsed))
+              } else if (val === "") {
+                handleChange("quoteNumber", "")
+              }
+            }}
+          />
           <EditableField label="Client ID" value={formData.clientID || ""} editable={editMode} onChange={(val) => handleChange("clientID", val)} />
           <EditableField label="Client Secret" value={formData.clientSecret || ""} editable={editMode} onChange={(val) => handleChange("clientSecret", val)} />
 
@@ -159,7 +210,7 @@ export default function ProfilePage() {
               </Button>
             ) : undefined}
           /> */}
-{/* 
+          {/* 
           <EditableField
             label="Xauthorize"
             value={formData.xauthorize || ""}
@@ -286,6 +337,27 @@ export default function ProfilePage() {
               Cancel
             </Button>
             <Button onClick={confirmSave}>Confirm Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* HELPER DIALOG */}
+      <Dialog open={showHelp} onOpenChange={setShowHelp}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>How to use this page</DialogTitle>
+          </DialogHeader>
+          <div style={{ maxHeight: "70vh", overflowY: "auto" }}>
+            <ul className="list-disc pl-6 space-y-2">
+              {helpSteps.map((step, index) => (
+                <li key={index}>
+                  <strong>{step.title}:</strong> {step.description}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowHelp(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

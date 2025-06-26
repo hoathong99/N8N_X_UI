@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -8,6 +9,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Plus, MoreHorizontal, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react"
 import APIService from "../APIService/APIService"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 const USER_NAME = "Cris.Twendee"
 const USER_TAG = "@0xCris2163"
@@ -18,6 +26,8 @@ export default function TweetsPage() {
   const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({})
   const [quoteFilter, setQuoteFilter] = useState<"" | "true" | "false">("")
   const [isTweetedFilter, setIsTweetedFilter] = useState<"" | "true" | "false">("")
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [debounceMap, setDebounceMap] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     const fetchTweets = async () => {
@@ -33,6 +43,17 @@ export default function TweetsPage() {
     }
     fetchTweets()
   }, [])
+
+  const handleProcessTweets = async () => {
+    setShowConfirm(false)
+    try {
+      await APIService.triggerQuoteTweet()
+      alert("Tweet processing triggered successfully.")
+    } catch (err) {
+      console.error(err)
+      alert("Failed to trigger tweet processing.")
+    }
+  }
 
   const filteredTweets = tweets.filter((tweet) => {
     let pass = true
@@ -86,13 +107,13 @@ export default function TweetsPage() {
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Tweets Management</h2>
-        {/* buttons or something to be added top right */}
+        <Button onClick={() => setShowConfirm(true)}>Trigger Quoting</Button>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>All Tweets</CardTitle>
-          <CardDescription>Manage your published, scheduled, and draft tweets</CardDescription>
+          <CardDescription>Manage your published, scheduled, and draft tweets, quote number decides how many to-quote tweet will randomly be chosen to be quoted</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-4 mb-6">
@@ -128,7 +149,7 @@ export default function TweetsPage() {
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : (
             <div className="space-y-4">
-              {filteredTweets.map((tweet) => (
+              {filteredTweets.map((tweet: any) => (
                 <Card key={tweet._id} className="p-4">
                   <div className="flex items-start space-x-4">
                     <Avatar className="h-10 w-10">
@@ -147,23 +168,87 @@ export default function TweetsPage() {
                           </div>
                           {getBadges(tweet)}
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+
+                          {/* <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                console.log("quote state before click:", tweet.quote)
+                                if (tweet.quote) {
+                                  console.log("Calling NotQuote...")
+                                  await APIService.NotQuote(tweet._id)
+                                } else {
+                                  console.log("Calling Quote...")
+                                  await APIService.Quote(tweet._id)
+                                }
+                                setTweets((prev) =>
+                                  prev.map((t) =>
+                                    t._id === tweet._id ? { ...t, quote: !tweet.quote } : t
+                                  )
+                                )
+                              } catch (err) {
+                                alert("Failed to update quote status")
+                                console.error(err)
+                              }
+                            }}
+                          >
+                            {tweet.quote ? "Do Not Quote" : "Quote"}
+                          </Button> */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={debounceMap[tweet._id]}
+                            onClick={async () => {
+                              if (debounceMap[tweet._id]) return
+
+                              setDebounceMap((prev) => ({ ...prev, [tweet._id]: true }))
+                              setTimeout(() => {
+                                setDebounceMap((prev) => {
+                                  const { [tweet._id]: _, ...rest } = prev
+                                  return rest
+                                })
+                              }, 4000)
+
+                              try {
+                                if (tweet.quote) {
+                                  await APIService.NotQuote(tweet._id)
+                                } else {
+                                  await APIService.Quote(tweet._id)
+                                }
+
+                                setTweets((prev) =>
+                                  prev.map((t) =>
+                                    t._id === tweet._id ? { ...t, quote: !tweet.quote } : t
+                                  )
+                                )
+                              } catch (err) {
+                                alert("Failed to update quote status")
+                                console.error(err)
+                              }
+                            }}
+                          >
+                            {tweet.quote ? "Do Not Quote" : "Quote"}
+                          </Button>
+                        </div>
                       </div>
 
                       {/* AI generated comment */}
@@ -208,6 +293,21 @@ export default function TweetsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Quote Tweets</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This will start quoting all To Quote. Are you sure?
+          </p>
+          <DialogFooter className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancel</Button>
+            <Button onClick={handleProcessTweets}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
