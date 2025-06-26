@@ -1,157 +1,193 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MapPin, Calendar, LinkIcon, Edit } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Edit, Save, X } from "lucide-react"
+import APIService, { ProfileAPIResponse } from "../APIService/APIService"
 
 export default function ProfilePage() {
-  const profile = {
-    name: "John Doe",
-    username: "@johndoe",
-    bio: "Digital marketer & content creator. Passionate about technology and social media trends. Building the future one tweet at a time.",
-    location: "San Francisco, CA",
-    website: "https://johndoe.com",
-    joinDate: "March 2019",
-    following: 1234,
-    followers: 45200,
-    tweets: 2847,
-    avatar: "/placeholder.svg?height=120&width=120",
-    banner: "/placeholder.svg?height=200&width=600",
-    verified: true,
+  const [profile, setProfile] = useState<ProfileAPIResponse | null>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [formData, setFormData] = useState<Partial<ProfileAPIResponse>>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    APIService.fetchUserProfile()
+      .then((data) => {
+        setProfile(data)
+        setFormData(data)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleChange = (field: keyof ProfileAPIResponse, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleSave = async () => {
+    try {
+      const updated = await APIService.updateUserProfile(formData)
+      setProfile(updated)
+      setEditMode(false)
+    } catch (err) {
+      console.error(err)
+      alert("Failed to update profile.")
+    }
+  }
+
+  const handleCancel = () => {
+    if (profile) {
+      setFormData(profile)
+    }
+    setEditMode(false)
+  }
+
+  if (loading) return <div className="p-8">Loading...</div>
+  if (!profile) return <div className="p-8 text-red-500">Failed to load profile.</div>
+
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="flex-1 space-y-6 p-8 pt-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
-        <Button>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Profile
-        </Button>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
+          <p className="text-muted-foreground text-sm">Manage your account settings and API credentials</p>
+        </div>
+        <div className="flex gap-2">
+          {editMode ? (
+            <>
+              <Button variant="outline" onClick={handleCancel}>
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+              <Button onClick={handleSave}>
+                <Save className="mr-2 h-4 w-4" />
+                Save
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setEditMode(true)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Profile
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>
-        <div className="relative">
-          <div
-            className="h-48 w-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-t-lg"
-            style={{
-              backgroundImage: `url(${profile.banner})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
+        <CardHeader>
+          <CardTitle>Account Details</CardTitle>
+          <CardDescription>This data is used for authentication and agent logic.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <EditableField
+            label="Twitter User Name"
+            value={formData.userName || ""}
+            editable={editMode}
+            onChange={(val) => handleChange("userName", val)}
           />
-          <Avatar className="absolute -bottom-16 left-6 h-32 w-32 border-4 border-background">
-            <AvatarImage src={profile.avatar || "/placeholder.svg"} alt={profile.name} />
-            <AvatarFallback className="text-2xl">
-              {profile.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+          <EditableField
+            label="Client ID"
+            value={formData.clientID || ""}
+            editable={editMode}
+            onChange={(val) => handleChange("clientID", val)}
+          />
+          <EditableField
+            label="Client Secret"
+            value={formData.clientSecret || ""}
+            editable={editMode}
+            onChange={(val) => handleChange("clientSecret", val)}
+          />
+          <EditableField
+            label="TwitterAPI.io Key"
+            value={formData.twitterAPIkey || ""}
+            editable={editMode}
+            onChange={(val) => handleChange("twitterAPIkey", val)}
+          />
+          <EditableField
+            label="Agent Prompt"
+            value={formData.agentPrompt || ""}
+            editable={editMode}
+            multiline
+            onChange={(val) => handleChange("agentPrompt", val)}
+          />
 
-        <CardContent className="pt-20">
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-2xl font-bold">{profile.name}</h3>
-                {profile.verified && (
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    Verified
-                  </Badge>
-                )}
-              </div>
-              <p className="text-muted-foreground">{profile.username}</p>
-              <p className="text-sm max-w-md">{profile.bio}</p>
-
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {profile.location}
-                </div>
-                <div className="flex items-center gap-1">
-                  <LinkIcon className="h-4 w-4" />
-                  <a href={profile.website} className="text-blue-600 hover:underline">
-                    {profile.website.replace("https://", "")}
-                  </a>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  Joined {profile.joinDate}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 text-sm">
-                <div>
-                  <span className="font-bold">{profile.following.toLocaleString()}</span>
-                  <span className="text-muted-foreground ml-1">Following</span>
-                </div>
-                <div>
-                  <span className="font-bold">{profile.followers.toLocaleString()}</span>
-                  <span className="text-muted-foreground ml-1">Followers</span>
-                </div>
-                <div>
-                  <span className="font-bold">{profile.tweets.toLocaleString()}</span>
-                  <span className="text-muted-foreground ml-1">Tweets</span>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <EditableField
+              label="Created At"
+              value={new Date(formData.createAt || "").toLocaleString()}
+              editable={false}
+            />
+            <div className="flex flex-col justify-end text-sm text-muted-foreground text-center sm:text-left pt-6">
+              <div className="font-semibold text-foreground">{formData.expireDays} days</div>
+              <div>Between every following(s) recalibration</div>
             </div>
+            <EditableField
+              label="Expire At"
+              value={new Date(formData.expireAt || "").toLocaleString()}
+              editable={false}
+            />
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Statistics</CardTitle>
-            <CardDescription>Your account performance metrics</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between">
-              <span>Average Engagement Rate</span>
-              <span className="font-bold">4.2%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Monthly Growth</span>
-              <span className="font-bold text-green-600">+12.5%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Top Performing Tweet</span>
-              <span className="font-bold">2.3K likes</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Average Daily Tweets</span>
-              <span className="font-bold">3.2</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Achievements</CardTitle>
-            <CardDescription>Your latest milestones</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 bg-green-500 rounded-full" />
-              <span className="text-sm">Reached 45K followers</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 bg-blue-500 rounded-full" />
-              <span className="text-sm">Tweet went viral (10K+ retweets)</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 bg-purple-500 rounded-full" />
-              <span className="text-sm">Featured in trending topics</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 bg-orange-500 rounded-full" />
-              <span className="text-sm">Highest engagement month</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }
+
+
+function EditableField({
+  label,
+  value,
+  editable,
+  multiline = false,
+  onChange,
+}: {
+  label: string
+  value: string
+  editable: boolean
+  multiline?: boolean
+  onChange?: (value: string) => void
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const handleFocus = () => {
+    textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-muted-foreground">{label}</label>
+
+      {editable && onChange ? (
+        multiline ? (
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={handleFocus}
+            className="h-64 resize-y overflow-auto rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Enter your agent prompt..."
+          />
+        ) : (
+          <Input value={value} onChange={(e) => onChange(e.target.value)} />
+        )
+      ) : multiline ? (
+        <pre className="whitespace-pre-wrap break-words rounded-md bg-muted p-3 text-sm text-foreground font-sans max-h-96 overflow-auto">
+          {value || <i>Empty</i>}
+        </pre>
+      ) : (
+        <p className="text-sm text-foreground">{value || <i>Empty</i>}</p>
+      )}
+    </div>
+  )
+}
+
+

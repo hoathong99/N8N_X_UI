@@ -33,11 +33,11 @@ const menuItems = [
     url: "/ai-agent",
     icon: Bot,
   },
-  {
-    title: "User Management",
-    url: "/users",
-    icon: Users,
-  },
+  // {
+  //   title: "User Management",
+  //   url: "/users",
+  //   icon: Users,
+  // },
 ]
 
 export function AppSidebar() {

@@ -2,11 +2,14 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://hoathong99.github.io/N8N_X_UI",
   "scripts": {
+    "predeploy": "npm run build",
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "deploy": "echo > out/.nojekyll && gh-pages -d out"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -41,8 +44,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
-    "date-fns": "4.1.0",
+    "date-fns": "^3.6.0",
     "embla-carousel-react": "8.5.1",
+    "gh-pages": "^6.3.0",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
     "next": "14.2.16",
